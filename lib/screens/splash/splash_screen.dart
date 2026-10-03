@@ -1,8 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../routes/app_routes.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    if (isLoggedIn) {
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.home,
+      );
+    } else {
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.login,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,15 +64,7 @@ class SplashScreen extends StatelessWidget {
               style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacementNamed(
-                  context,
-                  AppRoutes.login,
-                );
-              },
-              child: const Text('Continue'),
-            ),
+            const CircularProgressIndicator(),
           ],
         ),
       ),

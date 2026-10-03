@@ -1,14 +1,74 @@
 import 'package:flutter/material.dart';
-import '../../routes/app_routes.dart';
 
-class HomeScreen extends StatelessWidget {
+import '../../routes/app_routes.dart';
+import '../map/map_screen.dart';
+import '../emergency/emergency_screen.dart';
+import '../profile/profile_screen.dart';
+import '../../widgets/network_status_banner.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = const [
+    _HomeDashboard(),
+    MapScreen(),
+    EmergencyScreen(),
+    ProfileScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map),
+            label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.warning_amber_rounded),
+            activeIcon: Icon(Icons.warning),
+            label: 'Emergency',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeDashboard extends StatelessWidget {
+  const _HomeDashboard();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-
       appBar: AppBar(
         backgroundColor: Colors.blue[700],
         foregroundColor: Colors.white,
@@ -26,16 +86,14 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            const Text(
-              'Good evening 👋',
-              style: TextStyle(
+            Text(
+              _getGreeting(),
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -51,7 +109,8 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            const NetworkStatusBanner(),
 
             // Emergency Alert
             Container(
@@ -71,9 +130,7 @@ class HomeScreen extends StatelessWidget {
                     color: Colors.orange[800],
                     size: 35,
                   ),
-
                   const SizedBox(width: 12),
-
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,20 +174,23 @@ class HomeScreen extends StatelessWidget {
                     title: 'Report Flood',
                     onTap: () {
                       Navigator.pushNamed(
-                       context,
-                      AppRoutes.reportFlood,
+                        context,
+                        AppRoutes.reportFlood,
                       );
                     },
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: _buildFeatureCard(
                     icon: Icons.map_outlined,
                     title: 'Live Map',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.map,
+                      );
+                    },
                   ),
                 ),
               ],
@@ -144,17 +204,25 @@ class HomeScreen extends StatelessWidget {
                   child: _buildFeatureCard(
                     icon: Icons.home_work_outlined,
                     title: 'Shelters',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(
+                      context,
+                        AppRoutes.shelters,
+                      );
+                    },
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: _buildFeatureCard(
                     icon: Icons.inventory_2_outlined,
                     title: 'Resources',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                       AppRoutes.resources,
+                      );
+                    },
                   ),
                 ),
               ],
@@ -162,41 +230,63 @@ class HomeScreen extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            const Text(
-              'Recent Activity',
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.bold,
-              ),
+            // Recent Activity
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recent Activity',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.reportHistory,
+                    );
+                  },
+                  child: const Text('View History'),
+                ),
+              ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
 
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.history,
-                    size: 40,
-                    color: Colors.grey[400],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Text(
-                    'No recent incidents',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 15,
+            InkWell(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.reportHistory,
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 40,
+                      color: Colors.grey[400],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    Text(
+                      'Tap to view your flood reports',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -204,30 +294,19 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            label: 'Map',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.warning_amber_rounded),
-            label: 'Emergency',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
-      ),
     );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+
+    if (hour < 12) {
+      return 'Good morning 👋';
+    } else if (hour < 17) {
+      return 'Good afternoon 👋';
+    } else {
+      return 'Good evening 👋';
+    }
   }
 
   Widget _buildFeatureCard({
@@ -253,9 +332,7 @@ class HomeScreen extends StatelessWidget {
               size: 32,
               color: Colors.blue[700],
             ),
-
             const SizedBox(height: 10),
-
             Text(
               title,
               textAlign: TextAlign.center,

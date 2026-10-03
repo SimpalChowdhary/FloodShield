@@ -1,8 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../routes/app_routes.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
+
+  Future<void> _login(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setBool('isLoggedIn', true);
+
+    if (!context.mounted) return;
+
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.home,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +32,6 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 50),
 
-              // Logo
               Container(
                 width: 90,
                 height: 90,
@@ -54,7 +68,6 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 45),
 
-              // Email
               TextField(
                 decoration: InputDecoration(
                   labelText: 'Email',
@@ -69,7 +82,6 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 18),
 
-              // Password
               TextField(
                 obscureText: true,
                 decoration: InputDecoration(
@@ -85,16 +97,12 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 25),
 
-              // Login button
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pushReplacementNamed(
-                      context,
-                      AppRoutes.home,
-                    );
+                    _login(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue[700],
