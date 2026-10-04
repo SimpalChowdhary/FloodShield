@@ -1,0 +1,66 @@
+$kind: http-request
+name: http://localhost:8080/api/test/protected
+description: ""
+url: http://localhost:8081/sync/upload
+method: POST
+headers:
+  Authorization: "{{json_web_token_0kjw}}"
+  c: ""
+body:
+  type: json
+  content: "{\r
+
+    \  \"incidents\": [\r
+
+    \    {\r
+
+    \      \"clientId\": \"offline-test-001\",\r
+
+    \      \"userId\": 2,\r
+
+    \      \"zoneId\": 1,\r
+
+    \      \"gpsLocation\": \"17.4065,78.4772\",\r
+
+    \      \"severity\": \"HIGH\",\r
+
+    \      \"description\": \"Offline flood report 1\",\r
+
+    \      \"photo\": \"flood1.jpg\",\r
+
+    \      \"priorityScore\": 80.00,\r
+
+    \      \"timestamp\": \"2026-10-04T13:30:00\"\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"clientId\": \"offline-test-002\",\r
+
+    \      \"userId\": 2,\r
+
+    \      \"zoneId\": 1,\r
+
+    \      \"gpsLocation\": \"17.4100,78.4800\",\r
+
+    \      \"severity\": \"MEDIUM\",\r
+
+    \      \"description\": \"Offline flood report 2\",\r
+
+    \      \"photo\": \"flood2.jpg\",\r
+
+    \      \"priorityScore\": 60.00,\r
+
+    \      \"timestamp\": \"2026-10-04T13:35:00\"\r
+
+    \    }\r
+
+    \  ]\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{json_web_token_0v0q}}"
+order: 1790662301617
