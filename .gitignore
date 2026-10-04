@@ -1,0 +1,15 @@
+# QGIS temporary/sidecar files
+*.qmd
+*.aux.xml
+*.qpj
+
+# Large raw GIS datasets
+gis-data/raw/dem/*.tif
+gis-data/raw/rainfall/*.nc
+
+# Large processed raster files
+gis-data/processed/*.tif
+
+# Python cache
+__pycache__/
+*.pyc
