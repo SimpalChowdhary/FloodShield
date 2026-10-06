@@ -46,8 +46,8 @@ public class AuthController {
                     Map.of(
                             "message", "Login successful",
                             "token", result.get("token"),
-                            "userId", result.get("userId")));
-
+                            "userId", result.get("userId"),
+                            "role", result.get("role")));
         } catch (RuntimeException e) {
             return ResponseEntity.status(401)
                     .body(Map.of("message", e.getMessage()));

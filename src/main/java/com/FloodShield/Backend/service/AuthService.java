@@ -37,7 +37,7 @@ public class AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
+        user.setRole("CITIZEN");
 
         userRepository.save(user);
 
@@ -62,6 +62,7 @@ public class AuthService {
 
         return Map.of(
                 "token", token,
-                "userId", user.getUserId());
+                "userId", user.getUserId(),
+                "role", user.getRole());
     }
 }
