@@ -1,5 +1,4 @@
-﻿
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -15,8 +14,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController emailController =
+      TextEditingController();
+
+  final TextEditingController passwordController =
+      TextEditingController();
 
   bool isLoading = false;
 
@@ -39,7 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.89.121.138:8081/api/auth/login'),
+        Uri.parse(
+          'http://10.89.121.138:8081/api/auth/login',
+        ),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -52,22 +56,42 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!context.mounted) return;
 
       if (response.statusCode == 200) {
+        print('LOGIN RESPONSE: ${response.body}');
+
         final data = jsonDecode(response.body);
-       
-        final token = data['token'];
-final userId = data['userId'];
-print('LOGIN USER ID: $userId');
 
-final prefs = await SharedPreferences.getInstance();
+        final String token = data['token'];
+        final int userId = data['userId'];
+        final String role = data['role'];
 
-await prefs.setString('token', token);
-await prefs.setInt('userId', userId);
-await prefs.setBool('isLoggedIn', true);
+        print('LOGIN USER ID: $userId');
+        print('LOGIN ROLE: $role');
 
-        Navigator.pushReplacementNamed(
-          context,
-          AppRoutes.home,
-        );
+        final prefs = await SharedPreferences.getInstance();
+
+        await prefs.setString('token', token);
+        await prefs.setInt('userId', userId);
+        await prefs.setString('role', role);
+        await prefs.setBool('isLoggedIn', true);
+
+        if (!context.mounted) return;
+
+        if (role == 'AUTHORITY') {
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.authorityHome,
+          );
+        } else if (role == 'FIELD_TEAM') {
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.fieldTeamHome,
+          );
+        } else {
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.home,
+          );
+        }
       } else {
         final data = jsonDecode(response.body);
 
@@ -80,6 +104,8 @@ await prefs.setBool('isLoggedIn', true);
         );
       }
     } catch (e) {
+      print('LOGIN ERROR: $e');
+
       if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,6 +139,7 @@ await prefs.setBool('isLoggedIn', true);
           child: Column(
             children: [
               const SizedBox(height: 50),
+
               Container(
                 width: 90,
                 height: 90,
@@ -126,7 +153,9 @@ await prefs.setBool('isLoggedIn', true);
                   size: 50,
                 ),
               ),
+
               const SizedBox(height: 20),
+
               const Text(
                 'FloodShield',
                 style: TextStyle(
@@ -134,7 +163,9 @@ await prefs.setBool('isLoggedIn', true);
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 8),
+
               Text(
                 'Flood Emergency Coordination',
                 style: TextStyle(
@@ -142,13 +173,17 @@ await prefs.setBool('isLoggedIn', true);
                   color: Colors.grey[600],
                 ),
               ),
+
               const SizedBox(height: 45),
+
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  prefixIcon: const Icon(
+                    Icons.email_outlined,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -156,13 +191,17 @@ await prefs.setBool('isLoggedIn', true);
                   fillColor: Colors.white,
                 ),
               ),
+
               const SizedBox(height: 18),
+
               TextField(
                 controller: passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -170,7 +209,9 @@ await prefs.setBool('isLoggedIn', true);
                   fillColor: Colors.white,
                 ),
               ),
+
               const SizedBox(height: 25),
+
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -205,7 +246,9 @@ await prefs.setBool('isLoggedIn', true);
                         ),
                 ),
               ),
+
               const SizedBox(height: 20),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -215,6 +258,7 @@ await prefs.setBool('isLoggedIn', true);
                       color: Colors.grey[700],
                     ),
                   ),
+
                   TextButton(
                     onPressed: () {
                       Navigator.pushNamed(
@@ -238,5 +282,3 @@ await prefs.setBool('isLoggedIn', true);
     );
   }
 }
-
-
