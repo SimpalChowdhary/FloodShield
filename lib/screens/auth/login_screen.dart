@@ -1,10 +1,12 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../routes/app_routes.dart';
+
+const String backendUrl = 'http://192.168.31.105:8081';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,17 +16,23 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailController =
-      TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  final TextEditingController passwordController =
-      TextEditingController();
+  bool _isLoading = false;
 
-  bool isLoading = false;
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
-  Future<void> _login(BuildContext context) async {
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
+  Future<void> _login() async {
+    if (_isLoading) return;
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -35,127 +43,164 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final response = await http.post(
-        Uri.parse(
-          'http://10.89.121.138:8081/api/auth/login',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$backendUrl/api/auth/login'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
-      if (!context.mounted) return;
+      if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        print('LOGIN RESPONSE: ${response.body}');
+      if (response.statusCode != 200) {
+        String message = 'Invalid email or password';
 
-        final data = jsonDecode(response.body);
-
-        final String token = data['token'];
-        final int userId = data['userId'];
-        final String role = data['role'];
-
-        print('LOGIN USER ID: $userId');
-        print('LOGIN ROLE: $role');
-
-        final prefs = await SharedPreferences.getInstance();
-
-        await prefs.setString('token', token);
-        await prefs.setInt('userId', userId);
-        await prefs.setString('role', role);
-        await prefs.setBool('isLoggedIn', true);
-
-        if (!context.mounted) return;
-
-        if (role == 'AUTHORITY') {
-          Navigator.pushReplacementNamed(
-            context,
-            AppRoutes.authorityHome,
-          );
-        } else if (role == 'FIELD_TEAM') {
-          Navigator.pushReplacementNamed(
-            context,
-            AppRoutes.fieldTeamHome,
-          );
-        } else {
-          Navigator.pushReplacementNamed(
-            context,
-            AppRoutes.home,
-          );
-        }
-      } else {
-        final data = jsonDecode(response.body);
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData is Map && errorData['message'] != null) {
+            message = errorData['message'].toString();
+          }
+        } catch (_) {}
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              data['message'] ?? 'Invalid email or password',
-            ),
-          ),
+          SnackBar(content: Text(message)),
+        );
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Invalid server response.');
+      }
+
+      final token = decoded['token']?.toString();
+      final role = decoded['role']?.toString().trim().toUpperCase();
+      final userId = decoded['userId'];
+
+      if (token == null || token.trim().isEmpty) {
+        throw const FormatException(
+          'The server response does not contain a valid token.',
         );
       }
-    } catch (e) {
-      print('LOGIN ERROR: $e');
 
-      if (!context.mounted) return;
+      if (role == null || role.isEmpty) {
+        throw const FormatException(
+          'The server response does not contain a user role.',
+        );
+      }
+
+      String destination;
+
+      switch (role) {
+        case 'CITIZEN':
+          destination = AppRoutes.citizenHome;
+          break;
+
+        case 'AUTHORITY':
+          destination = AppRoutes.authorityHome;
+          break;
+
+        case 'FIELD_TEAM':
+        case 'FIELD TEAM':
+        case 'FIELD-TEAM':
+        case 'FIELDTEAM':
+          destination = AppRoutes.fieldTeamHome;
+          break;
+
+        default:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Unsupported account role: $role'),
+            ),
+          );
+          return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setString('token', token);
+      await prefs.setString('role', role);
+
+      if (userId != null) {
+        final parsedId = int.tryParse(userId.toString());
+
+        if (parsedId != null) {
+          await prefs.setInt('userId', parsedId);
+        } else {
+          await prefs.remove('userId');
+        }
+      } else {
+        await prefs.remove('userId');
+      }
+
+      if (!mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        destination,
+        (route) => false,
+      );
+    } on FormatException catch (e) {
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to connect to server'),
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not connect to the server. '
+            'Check that the backend is running and your device is connected '
+            'to the same network.\n$e',
+          ),
         ),
       );
     } finally {
       if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
 
   @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF4F8FC),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
               const SizedBox(height: 50),
-
               Container(
                 width: 90,
                 height: 90,
                 decoration: BoxDecoration(
-                  color: Colors.blue[700],
+                  color: Colors.blue.shade700,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.water,
+                  Icons.water_drop_rounded,
                   color: Colors.white,
                   size: 50,
                 ),
               ),
-
               const SizedBox(height: 20),
-
               const Text(
                 'FloodShield',
                 style: TextStyle(
@@ -163,27 +208,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               Text(
                 'Flood Emergency Coordination',
                 style: TextStyle(
                   fontSize: 15,
-                  color: Colors.grey[600],
+                  color: Colors.grey.shade600,
                 ),
               ),
-
               const SizedBox(height: 45),
-
               TextField(
-                controller: emailController,
+                controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                enabled: !_isLoading,
                 decoration: InputDecoration(
                   labelText: 'Email',
-                  prefixIcon: const Icon(
-                    Icons.email_outlined,
-                  ),
+                  prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -191,17 +232,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   fillColor: Colors.white,
                 ),
               ),
-
               const SizedBox(height: 18),
-
               TextField(
-                controller: passwordController,
+                controller: _passwordController,
                 obscureText: true,
+                enabled: !_isLoading,
+                onSubmitted: (_) {
+                  if (!_isLoading) _login();
+                },
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  prefixIcon: const Icon(
-                    Icons.lock_outline,
-                  ),
+                  prefixIcon: const Icon(Icons.lock_outline),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -209,26 +250,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   fillColor: Colors.white,
                 ),
               ),
-
               const SizedBox(height: 25),
-
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () {
-                          _login(context);
-                        },
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[700],
+                    backgroundColor: Colors.blue.shade700,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: isLoading
+                  child: _isLoading
                       ? const SizedBox(
                           width: 24,
                           height: 24,
@@ -246,31 +281,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "Don't have an account?",
-                    style: TextStyle(
-                      color: Colors.grey[700],
+                  Flexible(
+                    child: Text(
+                      "Don't have an account?",
+                      style: TextStyle(color: Colors.grey.shade700),
                     ),
                   ),
-
                   TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.signup,
-                      );
-                    },
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.signup,
+                            );
+                          },
                     child: const Text(
                       'Create Account',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],

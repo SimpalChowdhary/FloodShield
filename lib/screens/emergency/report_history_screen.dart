@@ -1,8 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../database/database_helper.dart';
 
@@ -27,137 +23,7 @@ class _ReportHistoryScreenState
   void initState() {
     super.initState();
     _loadReports();
- _syncPendingReports();
- 
- 
   }
-
-  Future<void> _syncPendingReports() async {
-  try {
-    final pendingReports =
-        await _databaseHelper.getPendingIncidents();
-
-    if (pendingReports.isEmpty) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No pending reports to sync.'),
-        ),
-      );
-
-      return;
-    }
-
-    final prefs =
-        await SharedPreferences.getInstance();
-
-    final token = prefs.getString('token');
-
-    if (token == null || token.isEmpty) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Login token not found. Please login again.',
-          ),
-        ),
-      );
-
-      return;
-    }
-
-    final incidents = pendingReports.map((report) {
-      return {
-        'userId': prefs.getInt('userId'),
-        'zoneId': int.tryParse(
-          report['zone_id']?.toString() ?? '',
-        ),
-        'gpsLocation':
-            '${report['lat']},${report['lng']}',
-        'severity':
-            report['severity']?.toString() ?? '',
-        'description':
-            report['description']?.toString() ?? '',
-        'photo':
-            report['photo']?.toString(),
-        'clientId':
-            report['id']?.toString(),
-        'timestamp':
-            report['timestamp']?.toString(),
-      };
-    }).toList();
-
-    final response = await http.post(
-      Uri.parse(
-        'http://10.89.121.138:8081/sync/upload',
-      ),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'incidents': incidents,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final List<dynamic> syncedIncidents =
-          jsonDecode(response.body);
-
-      for (final incident in syncedIncidents) {
-        final String? clientId =
-            incident['clientId']?.toString();
-
-        final dynamic incidentId =
-            incident['incidentId'];
-
-        if (clientId == null || incidentId == null) {
-          continue;
-        }
-
-        await _databaseHelper.updateIncident(
-          clientId,
-          {
-            'sync_status': 'Synced',
-            'incident_id': incidentId,
-          },
-        );
-      }
-
-      await _loadReports();
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Reports synced successfully.',
-          ),
-        ),
-      );
-    } else {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Sync failed: ${response.statusCode} ${response.body}',
-          ),
-        ),
-      );
-    }
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Sync error: $e'),
-      ),
-    );
-  }
-}
 
   Future<void> _loadReports() async {
     setState(() {
@@ -324,7 +190,8 @@ class _ReportHistoryScreenState
     }
 
     try {
-      final Map<String, dynamic> updatedIncident = {
+      final Map<String, dynamic> updatedIncident =
+          {
         'severity': selectedSeverity,
         'description':
             descriptionController.text.trim(),
@@ -374,16 +241,13 @@ class _ReportHistoryScreenState
 
       final String day =
           date.day.toString().padLeft(2, '0');
-
       final String month =
           date.month.toString().padLeft(2, '0');
-
       final String year =
           date.year.toString();
 
       final String hour =
           date.hour.toString().padLeft(2, '0');
-
       final String minute =
           date.minute.toString().padLeft(2, '0');
 
@@ -417,7 +281,7 @@ class _ReportHistoryScreenState
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            onPressed: _syncPendingReports,
+            onPressed: _loadReports,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -431,8 +295,7 @@ class _ReportHistoryScreenState
               : RefreshIndicator(
                   onRefresh: _loadReports,
                   child: ListView.builder(
-                    padding:
-                        const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
                     itemCount: _reports.length,
                     itemBuilder: (
                       context,
@@ -528,8 +391,7 @@ class _ReportHistoryScreenState
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 6,
                   ),
@@ -545,15 +407,16 @@ class _ReportHistoryScreenState
                     style: TextStyle(
                       color:
                           _severityColor(severity),
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
                   ),
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
+
             Row(
               children: [
                 Icon(
@@ -567,7 +430,9 @@ class _ReportHistoryScreenState
                 ),
               ],
             ),
+
             const SizedBox(height: 10),
+
             Row(
               crossAxisAlignment:
                   CrossAxisAlignment.start,
@@ -583,7 +448,9 @@ class _ReportHistoryScreenState
                 ),
               ],
             ),
+
             const SizedBox(height: 10),
+
             Row(
               children: [
                 Icon(
@@ -604,7 +471,9 @@ class _ReportHistoryScreenState
                 ),
               ],
             ),
+
             const SizedBox(height: 14),
+
             Row(
               children: [
                 Container(
@@ -655,7 +524,9 @@ class _ReportHistoryScreenState
                     ],
                   ),
                 ),
+
                 const Spacer(),
+
                 IconButton(
                   onPressed: () =>
                       _editReport(report),
@@ -664,6 +535,7 @@ class _ReportHistoryScreenState
                   ),
                   tooltip: 'Edit',
                 ),
+
                 IconButton(
                   onPressed: () =>
                       _showDeleteConfirmation(

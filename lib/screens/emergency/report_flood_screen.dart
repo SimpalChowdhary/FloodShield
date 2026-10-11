@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../database/database_helper.dart';
 
@@ -25,6 +24,7 @@ class _ReportFloodScreenState
       DatabaseHelper.instance;
 
   String? _selectedSeverity;
+
   bool _isLoadingLocation = false;
   bool _isSubmitting = false;
 
@@ -83,7 +83,8 @@ class _ReportFloodScreenState
 
       final LocationSettings locationSettings =
           AndroidSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
+        accuracy:
+            LocationAccuracy.bestForNavigation,
         distanceFilter: 0,
         forceLocationManager: false,
       );
@@ -126,9 +127,7 @@ class _ReportFloodScreenState
                   part != null &&
                   part.trim().isNotEmpty,
             )
-            .map(
-              (part) => part!.trim(),
-            )
+            .map((part) => part!.trim())
             .toSet()
             .join(', ');
       }
@@ -168,7 +167,6 @@ class _ReportFloodScreenState
           ),
         ),
       );
-
       return;
     }
 
@@ -180,7 +178,6 @@ class _ReportFloodScreenState
           ),
         ),
       );
-
       return;
     }
 
@@ -192,7 +189,6 @@ class _ReportFloodScreenState
           ),
         ),
       );
-
       return;
     }
 
@@ -205,7 +201,6 @@ class _ReportFloodScreenState
           ),
         ),
       );
-
       return;
     }
 
@@ -214,25 +209,12 @@ class _ReportFloodScreenState
     });
 
     try {
-      final prefs =
-          await SharedPreferences.getInstance();
-
-      final userId = prefs.getInt('userId');
-
-      if (userId == null) {
-        throw Exception(
-          'User ID not found. Please login again.',
-        );
-      }
-
       final String reportId =
-          DateTime.now()
-              .microsecondsSinceEpoch
-              .toString();
+          DateTime.now().microsecondsSinceEpoch.toString();
 
       final Map<String, dynamic> incident = {
         'id': reportId,
-        'user_id': userId.toString(),
+        'user_id': 'local-user',
         'lat': _currentLatitude,
         'lng': _currentLongitude,
         'severity': _selectedSeverity,
@@ -242,9 +224,7 @@ class _ReportFloodScreenState
         'timestamp':
             DateTime.now().toIso8601String(),
         'sync_status': 'Pending Sync',
-
-        // Current backend requires a valid zone.
-        'zone_id': '1',
+        'zone_id': null,
       };
 
       await _databaseHelper.insertIncident(
@@ -323,14 +303,12 @@ class _ReportFloodScreenState
                 labelText: 'Current Location',
                 hintText:
                     'Tap the button to get your location',
-                border:
-                    const OutlineInputBorder(),
+                border: const OutlineInputBorder(),
                 prefixIcon:
                     const Icon(Icons.location_on),
                 suffixIcon: _isLoadingLocation
                     ? const Padding(
-                        padding:
-                            EdgeInsets.all(12),
+                        padding: EdgeInsets.all(12),
                         child:
                             CircularProgressIndicator(
                           strokeWidth: 2,
@@ -376,16 +354,14 @@ class _ReportFloodScreenState
             const SizedBox(height: 20),
 
             TextField(
-              controller:
-                  _descriptionController,
+              controller: _descriptionController,
               maxLines: 5,
               decoration: const InputDecoration(
                 labelText: 'Description',
                 hintText:
                     'Describe the flood situation...',
                 border: OutlineInputBorder(),
-                prefixIcon:
-                    Icon(Icons.description),
+                prefixIcon: Icon(Icons.description),
                 alignLabelWithHint: true,
               ),
             ),
@@ -396,9 +372,10 @@ class _ReportFloodScreenState
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
-                onPressed: _isSubmitting
-                    ? null
-                    : _submitReport,
+                onPressed:
+                    _isSubmitting
+                        ? null
+                        : _submitReport,
                 icon: _isSubmitting
                     ? const SizedBox(
                         width: 20,

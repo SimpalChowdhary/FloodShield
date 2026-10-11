@@ -19,26 +19,19 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-  final String databasePath = await getDatabasesPath();
+    final String databasePath = await getDatabasesPath();
 
-  final String path = join(
-    databasePath,
-    'floodshield.db',
-  );
+    final String path = join(
+      databasePath,
+      'floodshield.db',
+    );
 
-  return await openDatabase(
-    path,
-    version: 2,
-    onCreate: _createDatabase,
-    onUpgrade: (db, oldVersion, newVersion) async {
-      if (oldVersion < 2) {
-        await db.execute(
-          'ALTER TABLE incidents ADD COLUMN incident_id INTEGER',
-        );
-      }
-    },
-  );
-}
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _createDatabase,
+    );
+  }
 
   Future<void> _createDatabase(
     Database db,
@@ -55,8 +48,7 @@ class DatabaseHelper {
         photo TEXT,
         timestamp TEXT,
         sync_status TEXT,
-        zone_id TEXT,
-incident_id INTEGER
+        zone_id TEXT
       )
     ''');
   }
@@ -105,11 +97,6 @@ incident_id INTEGER
       whereArgs: [id],
     );
   }
-  Future<int> deleteAllIncidents() async {
-  final Database db = await database;
-
-  return await db.delete('incidents');
-}
 
   Future<List<Map<String, dynamic>>> getPendingIncidents() async {
     final Database db = await database;
